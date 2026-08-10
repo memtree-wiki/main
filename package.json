@@ -7,7 +7,7 @@
     "projects/api/*"
   ],
   "scripts": {
-    "dev": "bun run --filter @memtree-wiki/api-web dev",
+    "dev": "bun run --filter @memtree.wiki/api-web dev",
     "typecheck": "bun run --filter '*' typecheck"
   },
   "devDependencies": {

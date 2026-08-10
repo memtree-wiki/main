@@ -14,27 +14,27 @@
       },
     },
     "projects/api/client": {
-      "name": "@memtree-wiki/api-client",
-      "version": "0.0.0",
+      "name": "@memtree.wiki/api-client",
+      "version": "0.0.1",
       "devDependencies": {
         "@types/bun": "^1.1.13",
         "typescript": "^5.6.3",
       },
     },
     "projects/api/common": {
-      "name": "@memtree-wiki/api-common",
-      "version": "0.0.0",
+      "name": "@memtree.wiki/api-common",
+      "version": "0.0.1",
       "devDependencies": {
         "@types/bun": "^1.1.13",
         "typescript": "^5.6.3",
       },
     },
     "projects/api/web": {
-      "name": "@memtree-wiki/api-web",
-      "version": "0.0.0",
+      "name": "@memtree.wiki/api-web",
+      "version": "0.0.1",
       "dependencies": {
-        "@memtree-wiki/docs": "workspace:*",
-        "@memtree-wiki/wiki": "workspace:*",
+        "@memtree.wiki/docs": "workspace:*",
+        "@memtree.wiki/wiki": "workspace:*",
         "hono": "^4.6.9",
       },
       "devDependencies": {
@@ -43,8 +43,8 @@
       },
     },
     "projects/docs": {
-      "name": "@memtree-wiki/docs",
-      "version": "0.0.0",
+      "name": "@memtree.wiki/docs",
+      "version": "0.0.1",
       "dependencies": {
         "vhtml": "^2.2.0",
       },
@@ -55,8 +55,8 @@
       },
     },
     "projects/wiki": {
-      "name": "@memtree-wiki/wiki",
-      "version": "0.0.0",
+      "name": "@memtree.wiki/wiki",
+      "version": "0.0.1",
       "devDependencies": {
         "@types/bun": "^1.1.13",
         "typescript": "^5.6.3",
@@ -64,15 +64,15 @@
     },
   },
   "packages": {
-    "@memtree-wiki/api-client": ["@memtree-wiki/api-client@workspace:projects/api/client"],
+    "@memtree.wiki/api-client": ["@memtree.wiki/api-client@workspace:projects/api/client"],
 
-    "@memtree-wiki/api-common": ["@memtree-wiki/api-common@workspace:projects/api/common"],
+    "@memtree.wiki/api-common": ["@memtree.wiki/api-common@workspace:projects/api/common"],
 
-    "@memtree-wiki/api-web": ["@memtree-wiki/api-web@workspace:projects/api/web"],
+    "@memtree.wiki/api-web": ["@memtree.wiki/api-web@workspace:projects/api/web"],
 
-    "@memtree-wiki/docs": ["@memtree-wiki/docs@workspace:projects/docs"],
+    "@memtree.wiki/docs": ["@memtree.wiki/docs@workspace:projects/docs"],
 
-    "@memtree-wiki/wiki": ["@memtree-wiki/wiki@workspace:projects/wiki"],
+    "@memtree.wiki/wiki": ["@memtree.wiki/wiki@workspace:projects/wiki"],
 
     "@types/bun": ["@types/bun@1.3.14", "", { "dependencies": { "bun-types": "1.3.14" } }, "sha512-h1hFqFVcvAvD9j9K7ZW7vd82aSA+rTdznZa+5bwvCwqSB1jmmfLcbIWhOLx1/+boy/xmjgCs/OMUL8hRJSmnPw=="],
 

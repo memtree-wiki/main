@@ -7,12 +7,12 @@ packages are still stubs (see `todo.yml` for what's planned/done).
 
 ```
 projects/
-  docs/            @memtree-wiki/docs      — content model (Zod schemas)
-  wiki/            @memtree-wiki/wiki      — document storage (store/retrieve)
+  docs/            @memtree.wiki/docs      — content model (Zod schemas)
+  wiki/            @memtree.wiki/wiki      — document storage (store/retrieve)
   api/
-    common/        @memtree-wiki/api-common — shared API types
-    web/            @memtree-wiki/api-web    — Hono HTTP server (the running app)
-    client/        @memtree-wiki/api-client — API client package
+    common/        @memtree.wiki/api-common — shared API types
+    web/            @memtree.wiki/api-web    — Hono HTTP server (the running app)
+    client/        @memtree.wiki/api-client — API client package
 ```
 
 - `docs` defines the canonical page content model with Zod: a `Document` is a `title` +

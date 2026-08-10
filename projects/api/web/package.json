@@ -1,5 +1,5 @@
 {
-  "name": "@memtree-wiki/api-web",
+  "name": "@memtree.wiki/api-web",
   "private": false,
   "version": "0.0.1",
   "type": "module",
@@ -9,8 +9,8 @@
   },
   "dependencies": {
     "hono": "^4.6.9",
-    "@memtree-wiki/docs": "workspace:*",
-    "@memtree-wiki/wiki": "workspace:*"
+    "@memtree.wiki/docs": "workspace:*",
+    "@memtree.wiki/wiki": "workspace:*"
   },
   "devDependencies": {
     "@types/bun": "^1.1.13",
