@@ -119,8 +119,8 @@ const elementHtml: { [k in ElementType]: (element: Extract<Element, { type: k }>
   h2: ({ text }) => <h2>{text}</h2>,
   h3: ({ text }) => <h3>{text}</h3>,
   p: ({ content }) => <p>{content.map(renderInlineHtml)}</p>,
-  ol: ({ items }) => <ol>{items.map(item => <li>{renderElement(item)}</li>)}</ol>,
-  ul: ({ items }) => <ul>{items.map(item => <li>{renderElement(item)}</li>)}</ul>,
+  ol: ({ items }) => <ol>{items.map(item => <li>{renderElementHtml(item)}</li>)}</ol>,
+  ul: ({ items }) => <ul>{items.map(item => <li>{renderElementHtml(item)}</li>)}</ul>,
   table: ({ headers, data }) => (
     <table>
       <thead>
@@ -128,7 +128,7 @@ const elementHtml: { [k in ElementType]: (element: Extract<Element, { type: k }>
       </thead>
       <tbody>
         {data.map((row) => (
-          <tr>{row.map((cell) => <td>{renderElement(cell)}</td>)}</tr>
+          <tr>{row.map((cell) => <td>{renderElementHtml(cell)}</td>)}</tr>
         ))}
       </tbody>
     </table>
@@ -144,7 +144,7 @@ const elementHtml: { [k in ElementType]: (element: Extract<Element, { type: k }>
   },
 }
 
-function renderElement<T extends ElementType>(element: Extract<Element, { type: T }>) {
+function renderElementHtml<T extends ElementType>(element: Extract<Element, { type: T }>) {
   return elementHtml[element.type](element)
 }
 
@@ -153,7 +153,7 @@ export function html({ title, description, content }: Document) {
     <article>
       <h1>{title}</h1>
       <p>{description}</p>
-      {content.map(renderElement)}
+      {content.map(renderElementHtml)}
     </article>
   )
 }
@@ -174,23 +174,33 @@ const elementMd: { [k in ElementType]: (element: Extract<Element, { type: k }>) 
   h2: ({ text }) => `## ${text}\n`,
   h3: ({ text }) => `### ${text}\n`,
   p: ({ content }) => content.map(renderInlineMd).join(" ") + "\n",
-  ol: ({ items }) => items.map((item, index) => `${index + 1}. ${renderElement(item)}`).join("\n") + "\n",
-  ul: ({ items }) => items.map((item) => `- ${renderElement(item)}`).join("\n") + "\n",
+  ol: ({ items }) => items.map((item, index) => `${index + 1}. ${renderElementMd(item).trim()}`).join("\n") + "\n",
+  ul: ({ items }) => items.map((item) => `- ${renderElementMd(item).trim()}`).join("\n") + "\n",
   table: ({ headers, data }) => {
     const headerRow = `| ${headers.join(" | ")} |`
     const separatorRow = `| ${headers.map(() => "---").join(" | ")} |`
-    const dataRows = data.map(row => `| ${row.map(cell => renderElement(cell)).join(" | ")} |`).join("\n")
+    const dataRows = data.map(row => `| ${row.map(cell => renderElementMd(cell).trim()).join(" | ")} |`).join("\n")
     return `${headerRow}\n${separatorRow}\n${dataRows}\n`
   },
   code: ({ lang, content }) => `\`\`\`${lang}\n${content}\n\`\`\`\n`,
 }
 
+function renderElementMd<T extends ElementType>(element: Extract<Element, { type: T }>) {
+  return elementMd[element.type](element)
+}
+
 export function md({ title, description, content }: Document) {
-  // TODO: add a frontmatter with the title and description.
+  const frontmatter = [
+    "---",
+    `title: ${JSON.stringify(title)}`,
+    `description: ${JSON.stringify(description)}`,
+    "---\n",
+  ].join("\n")
   return [
+    frontmatter,
     `# ${title}\n`,
     `${description}\n`,
-    ...content.map(renderElement)
+    ...content.map(renderElementMd)
   ].join("\n")
 }
 
@@ -213,18 +223,23 @@ const elementTxt: { [k in ElementType]: (element: Extract<Element, { type: k }>)
   ol: elementMd.ol,
   ul: elementMd.ul,
   table: ({ headers, data }) => {
-    const headerRow = headers.join("\t")
-    // TODO: make sure they are perfectly aligned, maybe use a library for that.
-    const dataRows = data.map(row => row.map(cell => renderElement(cell)).join("\t")).join("\n")
-    return `${headerRow}\n${dataRows}`
+    const rows = [headers, ...data.map(row => row.map(cell => renderElementTxt(cell)))]
+    const widths = headers.map((_, col) => Math.max(...rows.map(row => row[col]!.length)))
+    return rows
+      .map(row => row.map((cell, col) => cell.padEnd(widths[col]!)).join("  ").trimEnd())
+      .join("\n")
   },
   code: ({ content }) => content,
+}
+
+function renderElementTxt<T extends ElementType>(element: Extract<Element, { type: T }>) {
+  return elementTxt[element.type](element)
 }
 
 export function txt({ title, description, content }: Document) {
   return [
     title,
     description,
-    ...content.map(renderElement)
+    ...content.map(renderElementTxt)
   ].join("\n")
 }

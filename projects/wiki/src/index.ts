@@ -2,7 +2,7 @@ import type { Document } from "@memtree.wiki/docs"
 
 type Vector = readonly number[]
 
-type Embedder = (doc: Document) => Vector
+type Embedder = (doc: Document) => Promise<Vector>
 type Merger = (docs: [Document, Document]) => Document
 
 interface Params {

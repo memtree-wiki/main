@@ -16,6 +16,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@memtree.wiki/docs": "workspace:*"
+    "@ai-sdk/openai": "^4.0.36",
+    "@memtree.wiki/docs": "workspace:*",
+    "ai": "^7.0.58"
   }
 }
