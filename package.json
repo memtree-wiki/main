@@ -11,9 +11,11 @@
     "typecheck": "bun run --filter '*' typecheck"
   },
   "devDependencies": {
+    "@types/vhtml": "^2.2.9",
     "typescript": "^5.6.3"
   },
   "dependencies": {
+    "vhtml": "^2.2.0",
     "zod": "^4.4.3"
   }
 }

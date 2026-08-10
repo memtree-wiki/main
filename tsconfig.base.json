@@ -5,6 +5,8 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "moduleDetection": "force",
+    "jsx": "react",
+    "jsxFactory": "h",
     "strict": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
