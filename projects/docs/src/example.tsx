@@ -73,7 +73,24 @@ const doc: Document = {
           { type: "p", content: [{ type: "strong", text: "table" }] },
           { type: "p", content: [{ type: "em", text: "You're looking at it" }] },
         ],
+        [
+          { type: "p", content: [{ type: "strong", text: "code" }] },
+          { type: "p", content: [{ type: "span", text: "Syntax-highlighted code blocks" }] },
+        ],
       ],
+    },
+    {
+      type: "h3",
+      text: "Code",
+    },
+    {
+      type: "p",
+      content: [{ type: "span", text: "Code blocks are highlighted per their declared " }, { type: "strong", text: "lang" }, { type: "span", text: ":" }],
+    },
+    {
+      type: "code",
+      lang: "ts",
+      content: "function greet(name: string): string {\n  return `Hello, ${name}!`\n}",
     },
   ],
 }

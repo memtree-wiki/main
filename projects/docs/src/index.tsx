@@ -1,5 +1,16 @@
 import h from "vhtml"
 import z from "zod"
+import Prism from "prismjs"
+import "prismjs/components/prism-typescript"
+import "prismjs/components/prism-javascript"
+import "prismjs/components/prism-python"
+import "prismjs/components/prism-java"
+import "prismjs/components/prism-c"
+import "prismjs/components/prism-cpp"
+import "prismjs/components/prism-csharp"
+import "prismjs/components/prism-ruby"
+import "prismjs/components/prism-go"
+import "prismjs/components/prism-rust"
 
 // INLINE
 const strong = z.object({
@@ -65,6 +76,19 @@ const code = z.object({
   content: z.string(),
 })
 
+const prismLanguage: { [k in z.infer<typeof code>["lang"]]: string } = {
+  ts: "typescript",
+  js: "javascript",
+  py: "python",
+  java: "java",
+  c: "c",
+  cpp: "cpp",
+  cs: "csharp",
+  rb: "ruby",
+  go: "go",
+  rs: "rust",
+}
+
 type ElementType = Element['type']
 export type Element = z.infer<typeof Element>
 export const Element = z.discriminatedUnion("type", [h2, h3, ol, ul, p, table, code])
@@ -108,7 +132,15 @@ const elementHtml: { [k in ElementType]: (element: Extract<Element, { type: k }>
       </tbody>
     </table>
   ),
-  code: ({ lang, content }) => <pre><code className={`language-${lang}`}>{content}</code></pre>,
+  code: ({ lang, content }) => {
+    const prismLang = prismLanguage[lang]
+    const highlighted = Prism.highlight(content, Prism.languages[prismLang]!, prismLang)
+    return (
+      <pre className={`language-${lang}`}>
+        <code className={`language-${lang}`} dangerouslySetInnerHTML={{ __html: highlighted }} />
+      </pre>
+    )
+  },
 }
 
 function renderElement<T extends ElementType>(element: Extract<Element, { type: T }>) {
