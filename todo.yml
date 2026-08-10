@@ -1,4 +1,6 @@
-TODO: {}
+TODO:
+  Docs:
+    - implement the code element in the docs renderer, use the most efficient lightweight code highlighting library for the rendering.
 DONE:
   - create a post-merge git hook that runs whenever I merge dev into main and:
       - patch the version of projects/docs

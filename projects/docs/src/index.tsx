@@ -59,9 +59,15 @@ const table = z.object({
   data: z.array(z.array(p)),
 })
 
+const code = z.object({
+  type: z.literal("code"),
+  lang: z.enum(["ts", "js", "py", "java", "c", "cpp", "cs", "rb", "go", "rs"]),
+  content: z.string(),
+})
+
 type ElementType = Element['type']
 export type Element = z.infer<typeof Element>
-export const Element = z.discriminatedUnion("type", [h2, h3, ol, ul, p, table])
+export const Element = z.discriminatedUnion("type", [h2, h3, ol, ul, p, table, code])
 
 
 // DOCUMENT
@@ -102,6 +108,7 @@ const elementHtml: { [k in ElementType]: (element: Extract<Element, { type: k }>
       </tbody>
     </table>
   ),
+  code: ({ lang, content }) => <pre><code className={`language-${lang}`}>{content}</code></pre>,
 }
 
 function renderElement<T extends ElementType>(element: Extract<Element, { type: T }>) {
