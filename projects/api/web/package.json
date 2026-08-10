@@ -1,7 +1,7 @@
 {
   "name": "@memtree-wiki/api-web",
   "private": false,
-  "version": "0.0.0",
+  "version": "0.0.1",
   "type": "module",
   "scripts": {
     "dev": "bun run --hot src/index.ts",

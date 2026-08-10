@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Bumps @memtree-wiki/docs' patch version whenever `dev` is merged into `main`.
+# Bumps every workspace package's patch version (kept in lockstep) whenever `dev` is merged into `main`.
 set -euo pipefail
 
 branch="$(git rev-parse --abbrev-ref HEAD)"
@@ -9,16 +9,11 @@ last_merge="$(git reflog -1 --format=%gs)"
 [[ "$last_merge" == "merge dev:"* ]] || exit 0
 
 repo_root="$(git rev-parse --show-toplevel)"
-docs_pkg="$repo_root/projects/docs/package.json"
 
-new_version="$(DOCS_PKG="$docs_pkg" bun -e '
-  const path = process.env.DOCS_PKG;
-  const pkg = await Bun.file(path).json();
-  const [major, minor, patch] = pkg.version.split(".").map(Number);
-  pkg.version = `${major}.${minor}.${patch + 1}`;
-  await Bun.write(path, JSON.stringify(pkg, null, 2) + "\n");
-  process.stdout.write(pkg.version);
-')"
+new_version="$(cd "$repo_root" && bun pm version patch --no-git-tag-version)"
+new_version="${new_version#v}"
 
-git -C "$repo_root" add "$docs_pkg"
-git -C "$repo_root" commit -m "chore(docs): bump @memtree-wiki/docs to $new_version" --quiet
+while IFS= read -r -d '' pkg; do
+  dir="$(dirname "$pkg")"
+  (cd "$dir" && bun pm version "$new_version" --no-git-tag-version) > /dev/null
+done < <(find "$repo_root/projects" -maxdepth 3 -name package.json -not -path '*/node_modules/*' -print0)
