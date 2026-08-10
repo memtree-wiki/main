@@ -3,6 +3,11 @@
   "private": false,
   "version": "0.0.3",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/memtree-wiki/main.git",
+    "directory": "projects/api/client"
+  },
   "exports": {
     ".": "./src/index.ts"
   },
