@@ -1,12 +1,94 @@
 
+import h from "vhtml"
 import type { Document } from "."
+import { html } from "."
 
 const doc: Document = {
-    //  TODO: generate a complete document using the Document schema, make sure to use all available elements. Make a short document that demonstrates the capabilities of the Document schema.
-
+  title: "The Document Schema",
+  description: "A short tour of every element and inline format the schema currently supports.",
+  content: [
+    {
+      type: "h2",
+      text: "Inline formatting",
+    },
+    {
+      type: "p",
+      content: [
+        { type: "span", text: "Paragraphs can mix " },
+        { type: "strong", text: "strong" },
+        { type: "span", text: ", " },
+        { type: "em", text: "em" },
+        { type: "span", text: ", plain " },
+        { type: "span", text: "span" },
+        { type: "span", text: " text, and " },
+        { type: "a", href: "https://example.com", text: "links" },
+        { type: "span", text: "." },
+      ],
+    },
+    {
+      type: "h3",
+      text: "Lists",
+    },
+    {
+      type: "p",
+      content: [{ type: "span", text: "An ordered list:" }],
+    },
+    {
+      type: "ol",
+      items: [
+        { type: "p", content: [{ type: "span", text: "First step" }] },
+        { type: "p", content: [{ type: "span", text: "Second step" }] },
+        { type: "p", content: [{ type: "span", text: "Third step" }] },
+      ],
+    },
+    {
+      type: "p",
+      content: [{ type: "span", text: "An unordered list:" }],
+    },
+    {
+      type: "ul",
+      items: [
+        { type: "p", content: [{ type: "span", text: "Apples" }] },
+        { type: "p", content: [{ type: "span", text: "Oranges" }] },
+        { type: "p", content: [{ type: "span", text: "Pears" }] },
+      ],
+    },
+    {
+      type: "h3",
+      text: "Tables",
+    },
+    {
+      type: "table",
+      headers: ["Element", "Purpose"],
+      data: [
+        [
+          { type: "p", content: [{ type: "strong", text: "h2 / h3" }] },
+          { type: "p", content: [{ type: "span", text: "Section headings" }] },
+        ],
+        [
+          { type: "p", content: [{ type: "strong", text: "ol / ul" }] },
+          { type: "p", content: [{ type: "span", text: "Ordered and unordered lists" }] },
+        ],
+        [
+          { type: "p", content: [{ type: "strong", text: "table" }] },
+          { type: "p", content: [{ type: "em", text: "You're looking at it" }] },
+        ],
+      ],
+    },
+  ],
 }
 
-
 if (import.meta.main) {
-    // TODO: output a full html with embedded css. The document should be optimized for ease of reading.
+  const page = "<!doctype html>" + (
+    <html lang="en">
+      <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>{doc.title}</title>
+        <link rel="stylesheet" href="example.css" />
+      </head>
+      <body dangerouslySetInnerHTML={{ __html: html(doc) }} />
+    </html>
+  )
+  console.log(page)
 }
