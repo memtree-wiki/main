@@ -1,0 +1,19 @@
+{
+  "name": "memtree-wiki",
+  "private": true,
+  "version": "0.0.0",
+  "workspaces": [
+    "projects/*",
+    "projects/api/*"
+  ],
+  "scripts": {
+    "dev": "bun run --filter @memtree-wiki/api-web dev",
+    "typecheck": "bun run --filter '*' typecheck"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3"
+  },
+  "dependencies": {
+    "zod": "^4.4.3"
+  }
+}

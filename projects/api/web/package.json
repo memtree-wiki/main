@@ -1,0 +1,19 @@
+{
+  "name": "@memtree-wiki/api-web",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "bun run --hot src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "hono": "^4.6.9",
+    "@memtree-wiki/docs": "workspace:*",
+    "@memtree-wiki/wiki": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.1.13",
+    "typescript": "^5.6.3"
+  }
+}
