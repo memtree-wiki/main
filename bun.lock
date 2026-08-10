@@ -45,8 +45,12 @@
     "projects/docs": {
       "name": "@memtree-wiki/docs",
       "version": "0.0.0",
+      "dependencies": {
+        "vhtml": "^2.2.0",
+      },
       "devDependencies": {
         "@types/bun": "^1.1.13",
+        "@types/vhtml": "^2.2.9",
         "typescript": "^5.6.3",
       },
     },
