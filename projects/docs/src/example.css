@@ -1,4 +1,7 @@
-:root { color-scheme: light dark; }
+:root {
+  color-scheme: light dark;
+}
+
 body {
   max-width: 42rem;
   margin: 3rem auto;
@@ -9,22 +12,89 @@ body {
   color: #1a1a1a;
   background: #fdfdfd;
 }
-h1 { font-size: 2rem; margin-bottom: 0.25rem; }
-h1 + p { color: #555; margin-top: 0; font-size: 1rem; }
-h2 { font-size: 1.5rem; margin-top: 2.5rem; }
-h3 { font-size: 1.2rem; margin-top: 2rem; }
-p { margin: 1rem 0; }
-a { color: #0b5fff; text-decoration: none; }
-a:hover { text-decoration: underline; }
-ul, ol { padding-left: 1.5rem; }
-li, ul > p, ol > p { margin: 0.35rem 0; }
-table { border-collapse: collapse; width: 100%; margin: 1.5rem 0; }
-th, td { text-align: left; padding: 0.5rem 0.75rem; border-bottom: 1px solid #ddd; }
-th { border-bottom: 2px solid #333; }
+
+h1 {
+  font-size: 2rem;
+  margin-bottom: 0.25rem;
+}
+
+h1+p {
+  color: #555;
+  margin-top: 0;
+  font-size: 1rem;
+}
+
+h2 {
+  font-size: 1.5rem;
+  margin-top: 2.5rem;
+}
+
+h3 {
+  font-size: 1.2rem;
+  margin-top: 2rem;
+}
+
+p {
+  margin: 1rem 0;
+}
+
+a {
+  color: #0b5fff;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+ul,
+ol {
+  padding-left: 1.5rem;
+}
+
+li,
+ul>p,
+ol>p {
+  margin: 0.35rem 0;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1.5rem 0;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #ddd;
+}
+
+th {
+  border-bottom: 2px solid #333;
+}
+
 @media (prefers-color-scheme: dark) {
-  body { color: #eee; background: #111; }
-  h1 + p { color: #aaa; }
-  a { color: #6ea8fe; }
-  th, td { border-color: #333; }
-  th { border-color: #666; }
+  body {
+    color: #eee;
+    background: #111;
+  }
+
+  h1+p {
+    color: #aaa;
+  }
+
+  a {
+    color: #6ea8fe;
+  }
+
+  th,
+  td {
+    border-color: #333;
+  }
+
+  th {
+    border-color: #666;
+  }
 }

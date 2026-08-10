@@ -88,8 +88,8 @@ const elementHtml: { [k in ElementType]: (element: Extract<Element, { type: k }>
   h2: ({ text }) => <h2>{text}</h2>,
   h3: ({ text }) => <h3>{text}</h3>,
   p: ({ content }) => <p>{content.map(renderInline)}</p>,
-  ol: ({ items }) => <ol>{items.map(renderElement)}</ol>,
-  ul: ({ items }) => <ul>{items.map(renderElement)}</ul>,
+  ol: ({ items }) => <ol>{items.map(item => <li>{renderElement(item)}</li>)}</ol>,
+  ul: ({ items }) => <ul>{items.map(item => <li>{renderElement(item)}</li>)}</ul>,
   table: ({ headers, data }) => (
     <table>
       <thead>
