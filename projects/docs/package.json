@@ -20,9 +20,7 @@
     "vhtml": "^2.2.0"
   },
   "devDependencies": {
-    "@types/bun": "^1.1.13",
     "@types/prismjs": "^1.26.6",
-    "@types/vhtml": "^2.2.9",
-    "typescript": "^5.6.3"
+    "@types/vhtml": "^2.2.9"
   }
 }
