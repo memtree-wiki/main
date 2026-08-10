@@ -58,6 +58,53 @@ ol>p {
   margin: 0.35rem 0;
 }
 
+code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 0.875em;
+}
+
+pre {
+  overflow-x: auto;
+  margin: 1.5rem 0;
+  padding: 1rem 1.25rem;
+  border-radius: 0.5rem;
+  background: #f2f2f2;
+  line-height: 1.5;
+}
+
+pre code {
+  font-size: 0.9375rem;
+}
+
+.token.comment {
+  color: #6b7280;
+  font-style: italic;
+}
+
+.token.keyword,
+.token.builtin {
+  color: #a626a4;
+}
+
+.token.string,
+.token.char {
+  color: #50a14f;
+}
+
+.token.number,
+.token.boolean {
+  color: #986801;
+}
+
+.token.function {
+  color: #4078f2;
+}
+
+.token.operator,
+.token.punctuation {
+  color: #383a42;
+}
+
 table {
   border-collapse: collapse;
   width: 100%;
@@ -96,5 +143,37 @@ th {
 
   th {
     border-color: #666;
+  }
+
+  pre {
+    background: #1c1c1c;
+  }
+
+  .token.comment {
+    color: #9ca3af;
+  }
+
+  .token.keyword,
+  .token.builtin {
+    color: #c678dd;
+  }
+
+  .token.string,
+  .token.char {
+    color: #98c379;
+  }
+
+  .token.number,
+  .token.boolean {
+    color: #d19a66;
+  }
+
+  .token.function {
+    color: #61afef;
+  }
+
+  .token.operator,
+  .token.punctuation {
+    color: #d4d4d4;
   }
 }
