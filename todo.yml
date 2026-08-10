@@ -1,13 +1,4 @@
 TODO: {}
-
-Done:
-  - Init the knip.ts file to match the current project structure.
-  - Project structure:
-      - Rearrange the project structure using the following structure:
-          - projects:
-              - docs (package)
-              - wiki (package)
-              - api:
-                  - common (package)
-                  - web (app)
-                  - client (package)
+DONE:
+  - create a post-merge git hook that runs whenever I merge dev into main and:
+      - patch the version of projects/docs

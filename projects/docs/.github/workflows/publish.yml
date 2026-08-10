@@ -1,0 +1,31 @@
+name: Publish Packages
+
+on:
+    release:
+        types: [published]
+    workflow_dispatch:
+
+permissions:
+    contents: read
+    id-token: write # Required for OIDC trusted publishing & provenance
+
+jobs:
+    publish:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Setup Bun
+              uses: oven-sh/setup-bun@v2
+              with:
+                  bun-version: latest
+
+            - name: Install dependencies
+              run: bun install --frozen-lockfile
+
+            # Use bunx npm publish to generate provenance automatically via OIDC
+            - name: Publish @memtree.wiki/docs with Provenance
+              run: |
+                  cd projects/docs
+                  bunx npm publish --access public --provenance

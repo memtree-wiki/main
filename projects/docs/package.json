@@ -1,6 +1,6 @@
 {
-  "name": "@memtree-wiki/docs",
-  "private": true,
+  "name": "@memtree.wiki/docs",
+  "private": false,
   "version": "0.0.0",
   "type": "module",
   "exports": {
