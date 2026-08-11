@@ -34,6 +34,7 @@ interface Store {
 interface Params {
   L: number
   D: number
+  T: number
   embed: Embed
   merge: Merge
   split: Split
@@ -42,7 +43,7 @@ interface Params {
 
 type API = ReturnType<typeof memTree>
 
-export function memTree({ L, D, embed, merge, split, store }: Params) {
+export function memTree({ L, D, T, embed, merge, split, store }: Params) {
   // SEARCH
   interface SearchParams {
     query: string

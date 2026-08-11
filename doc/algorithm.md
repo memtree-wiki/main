@@ -15,27 +15,29 @@ An AI agent interacting with the tree can:
 
 ## Parameters
 
-The algorithm is governed by two parameters:
+The algorithm is governed by three parameters:
 
 - **L** — max document length (text length).
 - **D** — max out-degree (number of children per node).
+- **T** — similarity threshold for merging; a new document merges into an existing one when their
+  embeddings are at least `T` similar.
 
 ## Self-maintenance
 
-The tree maintains its own shape in the background as documents are added and edited, so that no
-document exceeds `L` and no node exceeds `D` children:
+The tree maintains its own shape in the background as documents are added, so that no document
+exceeds `L` and no node exceeds `D` children:
 
-- **Merge on add.** When a new document is added, if it is semantically similar enough to an
-  existing document, it is merged into that document instead of being inserted as a new node.
+- **Merge on add.** When a new document is added, if its similarity to an existing document is at
+  least `T`, it is merged into that document instead of being inserted as a new node.
 - **Split on overflow.** When a document's length exceeds `L`, it is split into a parent document
   and child documents. The original document's existing children are reattached under the new
   parent. Ideally the split yields documents with length below `L / 2`.
 - **Cluster on fan-out.** When a document has more than `D` children, its children are clustered
   and merged down into at most `D / 2` documents.
 
-Any operation that changes a document's content (add, edit, merge, or split) invalidates its
-embedding, which must be recomputed before the document is searchable again — a memory layer
-whose retrieval relies on stale embeddings fails silently rather than loudly.
+Any operation that changes a document's content (add, merge, or split) invalidates its embedding,
+which must be recomputed before the document is searchable again — a memory layer whose retrieval
+relies on stale embeddings fails silently rather than loudly.
 
 
 ## Advantages
