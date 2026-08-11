@@ -40,7 +40,7 @@ interface Params {
   embed: Embed
   merge: Merge
   split: Split
-  clust: (docs: Document[]) => Promise<Document[]>
+  clust: (docs: Document[]) => Promise<Document[][]>
 
   store: Store
 }
