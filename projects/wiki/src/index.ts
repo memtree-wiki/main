@@ -3,23 +3,11 @@ import PQueue from "p-queue"
 
 type Vector = readonly number[]
 
-type Embed = (doc: Document) => Promise<Vector>
+type Embed = (text: string, asQuery: boolean) => Promise<Vector>
 type Merge = (docs: [Document, Document]) => Document
 type Split = (doc: Document) => {
   parent: Document
   children: Document[]
-}
-
-function cosineSimilarity(a: Vector, b: Vector): number {
-  let dot = 0
-  let normA = 0
-  let normB = 0
-  for (let i = 0; i < a.length; i++) {
-    dot += a[i]! * b[i]!
-    normA += a[i]! * a[i]!
-    normB += b[i]! * b[i]!
-  }
-  return dot / (Math.sqrt(normA) * Math.sqrt(normB))
 }
 
 type nodeId = number
@@ -72,7 +60,7 @@ export function memTree({ L, D, T, embed, merge, split, store, splitConcurrency 
   }
 
   async function search({ query, topK }: SearchParams) {
-    const vector = await embed({ title: "", about: query, content: [] })
+    const vector = await embed(query, true)
     return store.search(vector, topK)
   }
 
@@ -91,7 +79,7 @@ export function memTree({ L, D, T, embed, merge, split, store, splitConcurrency 
   }
 
   async function add({ doc }: AddParams) {
-    const vector = await embed(doc)
+    const vector = await embed(doc.about, false)
     const results = await store.search(vector, 1)
     const best = results[0]
 
@@ -123,5 +111,6 @@ export function memTree({ L, D, T, embed, merge, split, store, splitConcurrency 
       }))
       await qSplit.onIdle()
     }
+    // TODO: implement merge but we need to define it first.
   }
 }
