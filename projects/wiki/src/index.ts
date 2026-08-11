@@ -74,7 +74,21 @@ export function memTree({ mergeRadius, maxDocLength, embed, merge, split, store,
   }
 
   async function add({ doc }: AddParams) {
-    // TODO: implement
+    const vector = await embed(doc.about, false)
+    const neighbors = await store.getNeighbors(vector, mergeRadius)
+
+    if (neighbors.length === 0) {
+      return store.add(doc)
+    }
+
+    const docs = [...neighbors]
+      .sort((a, b) => a.created.getTime() - b.created.getTime())
+      .map(({ doc }) => doc)
+
+    const merged = await merge([...docs, doc])
+    const id = await store.add(merged)
+    await Promise.all(neighbors.map(({ nodeId }) => store.del(nodeId)))
+    return id
   }
 
   // MAINTENANCE
