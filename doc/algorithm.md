@@ -11,7 +11,6 @@ An AI agent interacting with the tree can:
 - **search** the tree — find documents relevant to a query via semantic similarity.
 - **read** a specific document.
 - **add** a new document to the tree.
-- **edit** an existing document's content.
 - **delete** a subtree from the tree.
 
 ## Parameters
