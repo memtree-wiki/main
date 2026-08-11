@@ -51,11 +51,12 @@ export function memTree({ L, D, T, embed, merge, split, clust, store }: Params) 
   // SEARCH
   interface SearchParams {
     query: string
+    topK?: number
   }
 
-  async function search({ query }: SearchParams) {
+  async function search({ query, topK }: SearchParams) {
     const vector = await embed({ title: "", about: query, content: [] })
-    return store.search(vector)
+    return store.search(vector, topK)
   }
 
   // READ
@@ -74,7 +75,7 @@ export function memTree({ L, D, T, embed, merge, split, clust, store }: Params) 
 
   async function add({ doc }: AddParams) {
     const vector = await embed(doc)
-    const results = await store.search(vector)
+    const results = await store.search(vector, 1)
     const best = results[0]
 
     if (best && best.score >= T) {
