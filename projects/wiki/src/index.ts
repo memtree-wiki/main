@@ -9,6 +9,18 @@ type Split = (doc: Document) => {
   children: Document[]
 }
 
+function cosineSimilarity(a: Vector, b: Vector): number {
+  let dot = 0
+  let normA = 0
+  let normB = 0
+  for (let i = 0; i < a.length; i++) {
+    dot += a[i]! * b[i]!
+    normA += a[i]! * a[i]!
+    normB += b[i]! * b[i]!
+  }
+  return dot / (Math.sqrt(normA) * Math.sqrt(normB))
+}
+
 type nodeId = number
 
 interface Node {
@@ -41,14 +53,23 @@ interface Params {
   embed: Embed
   merge: Merge
   split: Split
-  clust: (docs: Document[]) => Promise<Document[][]>
 
   store: Store
 }
 
 export type API = ReturnType<typeof memTree>
 
-export function memTree({ L, D, T, embed, merge, split, clust, store }: Params) {
+/*
+TODO:
+- Implementation should be simple:
+  - Add: search for most similar node and merge if score > T, otherwise add as an orphan node.
+    Do not check if the merged node exceeds L.
+  - Maintain:
+    1. Split large nodes (adjust store API if needed)
+    2. Cluster children with too many siblings (adjust store API if needed)
+    This is the user responsibility to call maintain() whenever they want to to keep the structure of the tree balanced.
+*/
+export function memTree({ L, D, T, embed, merge, split, store }: Params) {
   // SEARCH
   interface SearchParams {
     query: string
@@ -105,12 +126,43 @@ export function memTree({ L, D, T, embed, merge, split, clust, store }: Params) 
     await maintainFanOut(id)
   }
 
+  async function cluster(docs: Document[]): Promise<Document[][]> {
+    const vectors = await Promise.all(docs.map((doc) => embed(doc)))
+    let groups = docs.map((doc, i) => ({ docs: [doc], vector: vectors[i]! }))
+
+    const target = Math.floor(D / 2)
+    while (groups.length > target) {
+      let bestI = 0
+      let bestJ = 1
+      let bestScore = -Infinity
+      for (let i = 0; i < groups.length; i++) {
+        for (let j = i + 1; j < groups.length; j++) {
+          const score = cosineSimilarity(groups[i]!.vector, groups[j]!.vector)
+          if (score > bestScore) {
+            bestScore = score
+            bestI = i
+            bestJ = j
+          }
+        }
+      }
+
+      const a = groups[bestI]!
+      const b = groups[bestJ]!
+      const mergedDocs = [...a.docs, ...b.docs]
+      const mergedVector = a.vector.map((v, i) => (v + b.vector[i]!) / 2)
+      groups = groups.filter((_, idx) => idx !== bestI && idx !== bestJ)
+      groups.push({ docs: mergedDocs, vector: mergedVector })
+    }
+
+    return groups.map((g) => g.docs)
+  }
+
   async function maintainFanOut(id: nodeId): Promise<void> {
     const node = await store.get(id)
     if (node.children.length <= D) return
 
     const children = await Promise.all(node.children.map((childId) => store.get(childId)))
-    const groups = await clust(children.map((child) => child.doc))
+    const groups = await cluster(children.map((child) => child.doc))
 
     for (const group of groups) {
       const members = children.filter((child) => group.includes(child.doc))
@@ -140,5 +192,8 @@ export function memTree({ L, D, T, embed, merge, split, clust, store }: Params) 
     return store.del(subtreeId)
   }
 
-  return { search, read, add, del }
+  // MAINTAIN
+  function maintain() { }
+
+  return { search, read, add, del, maintain }
 }
