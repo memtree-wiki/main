@@ -1,17 +1,16 @@
 # The MemTree Algorithm
 
-MemTree is a knowledge base for humans and AI agents, structured as a tree of documents (see
-`Document` in `@memtree.wiki/docs`). Every node in the tree is a document, and every document
-carries a semantic embedding.
+MemTree is a knowledge base for humans and AI agents, structured as a tree of documents. Every
+node in the tree is a document, and every document carries a semantic embedding.
 
 **Version 1**, described below, is deliberately conservative: it has no notion of deletion at
 all, explicit or implicit. Once a node exists it stays in the tree forever — its *content* can
 change (merge, split), but the tree never loses a node. Why, and what a later version might do
 about it, is discussed in [Open Questions](#open-questions).
 
-## Agent operations
+## Operations
 
-An AI agent interacting with the tree can:
+Anyone interacting with the tree — human or AI agent — can:
 
 - **search** the tree — find documents relevant to a query via semantic similarity.
 - **read** a specific document.
@@ -44,13 +43,12 @@ exceeds `L` and no node exceeds `D` children:
   the new parent. Ideally the split yields documents with length below `L / 2`. Purely additive
   to the tree — one node becomes several — so this one is settled and considered fine as-is.
 
-- **Cluster on fan-out** (v1, unresolved). When a document has more than `D` children, its
-  children are clustered and merged down into at most `D / 2` documents. As specified, this
-  doesn't actually fit v1's no-deletion rule: merging several children down into fewer
-  necessarily removes nodes, just via content-merge rather than an explicit delete call. It's
-  also not implemented yet — `projects/wiki/src/index.ts` has `Merge`/`Split` types and a
-  `split()` maintenance loop, but no `Cluster` type or fan-out equivalent of
-  `getSpillableNodes`. This needs more thinking before it can be called settled — see
+- **Merge on fan-out** (v1, not yet defined). When a node has more than `D` children, some of its
+  children are merged: the number of children is reduced, and whatever made those children
+  similar enough to merge is extracted and moves up the tree — for example, by creating a new
+  parent node to hold the extracted content, with the merged children reattached beneath it. The
+  precise mechanics — how children are grouped for merging, what exactly gets extracted, and how
+  new parents get created and attached — aren't defined yet. See
   [Open Question 2](#2-how-does-information-go-up-the-tree).
 
 Any operation that changes a document's content (add, merge, or split) invalidates its embedding,
@@ -67,158 +65,97 @@ relies on stale embeddings fails silently rather than loudly.
 
 ### 1. How does information get deleted, if at all?
 
-**What's already there.** Before designing anything: `Store` (`projects/wiki/src/index.ts`)
-already has the primitives —
+Version 1 has no deletion. If a future version adds it, it likely needs two distinct mechanisms
+doing different jobs rather than one mechanism trying to do both:
 
-```ts
-del: (nodeId: nodeId) => Promise<void>
-setParent: (child: nodeId, parent: nodeId | null) => Promise<void>
-```
+- **Explicit removal** — an agent or human designates a document as wrong or obsolete, and it is
+  removed. This is the only mechanism that can act on *correctness*: no amount of usage tracking
+  can tell you a fact became false, only something that actually understands the content can.
+  Explicit removal should stand alongside add as a first-class operation, available without
+  restriction at the algorithm level — the algorithm itself has no concept of users or
+  permissions, so deciding *who* is allowed to remove *what* is a concern for whatever layer
+  manages identity, not for the tree algorithm.
 
-Neither is called anywhere yet. `Node` has `created: Date` but nothing like `lastAccessed` — so
-"track last access time" isn't free, it's a schema addition plus an update on every read.
+- **Automatic removal** — driven by neglect rather than correctness, e.g. tracking how long it's
+  been since a document was last read and treating documents that go unused long enough as
+  candidates for removal. This is a much weaker signal than explicit removal: a document going
+  unused doesn't mean it's wrong, and a rarely-needed-but-still-true foundational fact looks
+  identical to a rarely-needed-because-obsolete one under a pure recency signal. So an automatic
+  mechanism shouldn't be destructive — it should *archive*: drop a stale document out of search
+  results while keeping it retrievable and reversible. Permanent removal stays an explicit,
+  deliberate act.
 
-**Explicit, restricted, or automatic?** Likely explicit *and* automatic, doing different jobs
-rather than competing for the same one:
+Removing a node also raises structural questions independent of *why* it's being removed:
 
-- *Explicit removal* — a human or agent says "this is wrong/obsolete," and it's gone. This is
-  the only mechanism that can act on *correctness*: no amount of usage tracking tells you a fact
-  went stale, only an agent that actually read it and knows the domain can. It should be
-  unrestricted at this layer, the same as `add` — the algorithm/storage packages have no concept
-  of "users" or permissions anywhere today (`Document`, `Node`, `Store` are all identity-free).
-  If restriction is wanted, it belongs in `api-web` (the one package that will eventually know
-  what a "user" is), as a check before it calls into the tree, not as something the algorithm
-  itself understands.
+- **What happens to its children?** Cascading the removal — deleting the whole subtree — risks
+  throwing away still-valid content underneath a node that was itself invalid. The alternative —
+  reattaching the removed node's children to its own parent — keeps that content in the tree, one
+  level shallower, but isn't free: an internal node with several children usually represents a
+  category that groups them, and removing it while reattaching its children erases that grouping.
+  If many children are involved, this can simply relocate the original problem (too many
+  children crowded together) one level up instead of resolving it. Reattaching is a clean move
+  for a node with a single child, or when the node's own content was wrong but its role as a
+  grouping was still sound; it's a poor move when the node's whole cluster of children no longer
+  belongs together, in which case the children need to be individually reconsidered rather than
+  bulk-promoted.
 
-- *Automatic removal* — plausible via last-access, but it should never be the thing that
-  hard-deletes. A document that's rarely *searched* isn't the same as a document that's *wrong*;
-  foundational, rarely-queried facts are exactly the ones you don't want silently vaporized
-  because nothing happened to ask about them this month. A safer shape: track `lastAccessed`
-  (bumped on `read`, not on merely appearing in `search` results — showing up in top-K is a
-  noisy signal of use, an explicit `read` is a real one), add a staleness-horizon parameter, and
-  have background maintenance *archive* stale nodes (excluded from `search`, still reachable via
-  `read`, reversible) rather than hard-delete them. Hard delete stays explicit-only.
+- **What happens to the root?** A root with no children can simply be removed — the tree becomes
+  empty, and the next document added becomes the new root. A root with children can't use the
+  same reattachment rule as everywhere else, because there's no grandparent to reattach to;
+  reattaching children with no parent produces a forest instead of a tree. Removing a root that
+  has children needs either a dedicated rule (e.g. promote one child to be the new root, reattach
+  the rest under it) or should simply be disallowed until the tree has been brought down to a
+  single child by other means.
 
-**Mechanics of an explicit delete.** What a `remove` op has to do depends on where the target
-sits in the tree:
+Whatever the eventual design, two properties should hold regardless of mechanism:
 
-- *Leaf, no children.* `await store.del(nodeId)` — trivial, nothing else references it.
-
-- *Internal node, has a parent.* Don't cascade the delete — reuse `store.setParent` to reparent
-  each child up to *its* parent, the same way `split` already keeps a node's pre-existing
-  children attached across a content rewrite:
-
-  ```ts
-  const node = await store.get(nodeId)
-  for (const child of node.children) {
-    await store.setParent(child, node.parent)
-  }
-  await store.del(nodeId)
-  ```
-
-  A node being stale or wrong says nothing about its children's validity, so the subtree
-  survives, just one level shallower — deleting an internal node flattens that level rather than
-  pruning it.
-
-  Whether this is actually a good idea is its own question. The retrieval-facing case for it is
-  solid: `search` here is flat and embedding-based, not path-based, and `read` returns just a
-  node plus its `parent` id, not ancestor content — so a child's discoverability and content
-  don't depend on which internal node sits above it, and reparenting is invisible to
-  search/read. The real cost is structural, not retrieval: an internal node with several
-  children is usually a synthesized *category* (that's what `split`/`cluster` produce), and
-  deleting it while keeping its children erases the grouping, potentially dumping unrelated
-  siblings onto the grandparent — which could itself push the grandparent over `D`. That's fine
-  when the node had one child (a clean unwrap) or only its own summary was wrong while the
-  grouping still holds; it's questionable when the deletion means the whole cluster no longer
-  belongs together, in which case reparenting everything up just relocates the problem instead
-  of resolving it.
-
-- *Root, no children.* Deleting it just empties the tree — already handled for free, since the
-  next `add` finds no search hit and calls `store.add(doc, null)` exactly as it does today,
-  minting a fresh root.
-
-- *Root, has children.* The reparent-to-parent move doesn't work here — the root's `parent` is
-  `null`, and reparenting every child to `null` produces a forest, not a tree, breaking the
-  one-root invariant `search`/`split` implicitly assume. No free default. Leaning toward
-  forbidding it — `remove` on a root with children errors — and requiring the tree be brought
-  down to a single child first by some other means.
-
-Two consequences fall out of allowing deletion at all, independent of which case above:
-
-- The search index has to drop the node **synchronously** with the delete, not lazily. Content
-  edits merely *invalidate* an embedding until it's recomputed, which is fine because the
-  stale-but-present node is still valid to return. A deleted node can't get the same treatment —
-  if `search` can still surface a `nodeId` that `get` no longer has, `read` on it throws.
-
-- Deletion races the background maintenance queues. A node can be sitting in the `split` queue
-  (or a future cluster/absorb queue), picked up by e.g. `getSpillableNodes`, and then get
-  explicitly removed before that queued job runs — which would then act on a `nodeId` that no
-  longer exists. Not solved here, just flagged: maintenance loops need to treat "node no longer
-  exists by the time I act on it" as an expected outcome, not an assumption violation.
+- Removal has to take effect immediately for search — a document search returns has to actually
+  exist to be read, so removal can't be a lazy or eventual operation the way content edits (which
+  just mark an embedding stale until it's recomputed) can be.
+- Removal has to be safe to run concurrently with the tree's other background maintenance
+  (splitting overflowing nodes, merging overflowing fan-out): a node queued for one of those
+  operations might be removed before that operation runs, and maintenance has to tolerate that
+  rather than assume every node it queued still exists by the time it acts.
 
 ### 2. How does information go up the tree?
 
-**Current state.** All three self-maintenance rules above only push content
-*outward/downward*: merge-on-add acts sideways at the single node `add` happens to land on;
-split-on-overflow pushes a node's content down into new children; cluster-on-fan-out merges
-*siblings into each other* but never feeds anything back into the parent. So today the tree can
-only ever get more specific over time. There's no operation that recognizes "several children
-have converged on saying roughly the same thing, and that thing belongs one level up" — the
-inverse of what `split` does — and a tree that only specializes and never generalizes will just
-accumulate redundant, duplicated content across siblings as the underlying knowledge matures.
+Search, read, and add, along with merge-on-add and split-on-overflow, only ever push content
+downward or sideways: split moves content from a node into new children beneath it; merge-on-add
+only ever affects the single node an addition lands on. Nothing currently takes content that has
+accumulated across several children and folds the shared part back into their parent — the
+inverse of what split does. Without that, the tree can only ever grow more specific over time,
+and as the underlying knowledge matures, similar content will simply keep piling up across
+siblings instead of consolidating.
 
-**Two ways to do the "up" move, and which fits this codebase.** The general version is content
-surgery: given several children that partially overlap, extract the common part into the parent
-and leave each child with just its delta. That needs reasoning below the whole-document level
-(e.g. per-`Element`), but the current embedding model (`Embed = (doc: Document) => Promise<Vector>`
-in `embedder.ts`) only produces one vector per *document*, not per paragraph — there's no
-existing signal to locate "the overlapping part" of two docs, only how similar they are as
-wholes.
+The general version of this is a content-extraction problem: given several children whose
+content partially overlaps, extract the common part into the parent (or into a newly created
+intermediate parent) and leave each child with just what's left over. Doing this precisely
+requires comparing children below the level of a whole document — at the level of individual
+passages or statements — which in turn requires a way to locate *where* two documents overlap,
+not just measure how similar they are as wholes.
 
-Given that, the design that actually fits what's already built is coarser but reuses every
-primitive that exists today — **absorb on similarity**: if a child's embedding is similar to its
-*parent's* embedding at or above `T` (the same `T` and `merge` that already govern merge-on-add),
-the child has stopped saying anything the parent doesn't already cover, so fold it back in:
+A coarser version only needs whole-document similarity: whenever a child's content, taken as a
+whole, is similar enough to its parent's, treat the child as no longer saying anything the parent
+doesn't already cover, and fold it entirely into the parent — merge its content into the
+parent's, move its own children up to attach directly to the parent, and remove it. This reuses
+the same similarity threshold and merge behavior that already governs merge-on-add, just
+evaluated across a parent-child pair instead of at write time, and it composes naturally with
+split: if enough absorbed content pushes the parent over the length limit, the existing split
+behavior re-differentiates it — so the tree can compress toward generality and expand toward
+specificity as the knowledge underneath it changes, rather than only ever growing in one
+direction.
 
-```ts
-// sketch, mirrors the shape of the existing split() maintenance loop
-absorb: async () => {
-  const pairs = await store.getAbsorbableNodes(T) // parent/child pairs, cosine(parent, child) >= T
-  for (const { parent, child } of pairs) {
-    const merged = merge([parent.doc, child.doc])
-    await store.update(parent.nodeId, merged)
-    for (const grandchild of child.children) {
-      await store.setParent(grandchild, parent.nodeId)   // reuse from Open Question 1
-    }
-    await store.del(child.nodeId)                          // reuse from Open Question 1
-  }
-}
-```
+This coarser version also only ever removes a node by fully absorbing it, which is exactly the
+deletion problem from Open Question 1 — the two open questions aren't independent, and an answer
+to "how does a node get removed" is a prerequisite for "how does content rise." It's also why
+merge-on-fan-out can't be considered settled yet: reducing a node's number of children means
+removing or restructuring some of them, and moving information *up* (rather than merely combining
+siblings into each other) means the tree needs a way to create new intermediate nodes to hold
+whatever gets extracted — neither of which has a defined mechanism yet.
 
-Why this shape rather than the fancier extraction version:
-
-- Reuses `merge`, `store.del`, and `store.setParent` as-is — no new LLM-driven "diff two
-  documents and extract the common part" primitive needed, which is a much bigger and shakier
-  thing to design well in a codebase where most of this is still stubs.
-- Symmetric with merge-on-add: same threshold `T`, same `merge` function, just checked across
-  the parent-child edge instead of against the top search hit at write time.
-- Composes with `split` for free: if enough children get absorbed that the parent's content
-  exceeds `L`, the existing split path picks it up on the next pass and re-differentiates it.
-  That gives a self-correcting cycle — absorb compresses toward generality, split expands toward
-  specificity — instead of only ever growing in one direction.
-- Directly needs Open Question 1's `del`/reparent logic: a child fully absorbed into its parent
-  *is* a deletion. The two open questions aren't independent — "how does a node get removed" is
-  a prerequisite for "how does content rise." This is also exactly why **cluster-on-fan-out**
-  can't be called settled in v1 (see above): it's already trying to do a version of this
-  (merging children down) without a deletion story underneath it.
-
-Root nodes have no parent, so they're naturally excluded from absorption — no special-casing
-needed there.
-
-Still open within this: whether `getAbsorbableNodes` should run as a continuous check (like
-merge-on-add, evaluated whenever a child changes) or a periodic sweep (like `split`'s
-maintenance queue) — periodic fits the "background self-maintenance" framing better, continuous
-would catch drift sooner. And whether whole-document similarity is too coarse in practice (a
-child that's 80% novel and 20% redundant with its parent won't cross `T` and won't get any
-relief) — that's the case finer-grained, per-`Element` extraction would actually solve, but
-worth waiting to see if it's a real problem before building that more complex machinery.
+Left open even within the coarser approach: whether this check should run continuously
+(evaluated whenever a child changes, the way merge-on-add is) or as a periodic background sweep
+(the way split's maintenance pass is); and whether whole-document similarity is too coarse in
+practice — a child that's mostly novel but partly redundant with its parent won't cross the
+threshold and won't get any relief, which is exactly the case finer-grained extraction would
+solve, but is worth deferring until it's shown to be a real problem.
