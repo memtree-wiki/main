@@ -1,65 +1,82 @@
 # The MemTree Algorithm
 
-MemTree is a knowledge base for humans and AI agents, structured as a tree of documents. Every
-node in the tree is a document, and every document carries a semantic embedding.
+MemTree is a knowledge base for humans and AI agents, structured as a flat pool of documents.
+There is no tree, no parent, no children — just a set of documents, each carrying a semantic
+embedding.
 
 **Version 1**, described below, is deliberately conservative: it has no notion of deletion at
-all, explicit or implicit. Once a node exists it stays in the tree forever — its *content* can
-change (merge, split), but the tree never loses a node. Why, and what a later version might do
+all, explicit or implicit. Once a document exists it stays in the pool forever — its *content* can
+change (merge, split), but the pool never loses a document. Why, and what a later version might do
 about it, is discussed in [Open Questions](#open-questions).
 
 ## Operations
 
-Anyone interacting with the tree — human or AI agent — can:
+Anyone interacting with the pool — human or AI agent — can:
 
-- **search** the tree — find documents relevant to a query via semantic similarity.
+- **search** the pool — find documents relevant to a query via semantic similarity.
 - **read** a specific document.
-- **add** a new document to the tree.
+- **add** a new document to the pool.
 
 There is no **delete**/**remove** operation in v1 — see
 [Open Question 1](#1-how-does-information-get-deleted-if-at-all).
 
 ## Parameters
 
-The algorithm is governed by three parameters:
+The algorithm is governed by two parameters:
 
 - **L** — max document length (text length).
-- **D** — max out-degree (number of children per node).
-- **T** — similarity threshold for merging; a new document merges into an existing one when their
-  embeddings are at least `T` similar.
+- **R** — merge radius: the cosine-similarity threshold for merging; a new document merges with an
+  existing one when their embeddings are at least `R` similar.
+
+There is no equivalent of a max out-degree or branching-factor parameter — there's no hierarchy to
+bound.
 
 ## Self-maintenance
 
-The tree maintains its own shape in the background as documents are added, so that no document
-exceeds `L` and no node exceeds `D` children:
+The pool maintains itself in the background as documents are added, so that no document exceeds
+`L`:
 
-- **Merge on add** (v1). When a new document is added, if its similarity to an existing document
-  is at least `T`, it is merged into that document instead of being inserted as a new node. This
-  never removes anything: an add either becomes a brand-new node or is absorbed into an existing
-  one, so node count only ever grows or stays flat.
+- **Merge on add** (v1). When a new document is added, it is merged with *every* existing document
+  within radius `R` of it — not just the closest one — into a single document. This never removes
+  information: an add either becomes a brand-new document or is absorbed into (and absorbs) one or
+  more existing documents, so total content only ever grows or stays flat. This is the pool's only
+  consolidation mechanism, and it does double duty: it's both how new information gets added *and*
+  how existing, overlapping information gets folded together, since a merge can pull in more than
+  one previously separate document at once.
 
-- **Split on overflow** (v1). When a document's length exceeds `L`, it is split into a parent
-  document and child documents. The original document's existing children are reattached under
-  the new parent. Ideally the split yields documents with length below `L / 2`. Purely additive
-  to the tree — one node becomes several — so this one is settled and considered fine as-is.
-
-- **Merge on fan-out** (v1, not yet defined). When a node has more than `D` children, some of its
-  children are merged: the number of children is reduced, and whatever made those children
-  similar enough to merge is extracted and moves up the tree — for example, by creating a new
-  parent node to hold the extracted content, with the merged children reattached beneath it. The
-  precise mechanics — how children are grouped for merging, what exactly gets extracted, and how
-  new parents get created and attached — aren't defined yet. See
-  [Open Question 2](#2-how-does-information-go-up-the-tree).
+- **Split on overflow** (v1). When a (merged) document's length exceeds `L`, it is split into
+  multiple documents, each ideally below `L`. Unlike merge, split's outputs are independent
+  documents in the pool afterward — there's no summary document left behind holding them together,
+  only whatever similarity remains between their embeddings.
 
 Any operation that changes a document's content (add, merge, or split) invalidates its embedding,
 which must be recomputed before the document is searchable again — a memory layer whose retrieval
 relies on stale embeddings fails silently rather than loudly.
+
+Two mechanics are still unsettled and covered under Open Questions rather than treated as settled
+design: how merge-on-add avoids chaining into runaway clusters as more documents land nearby over
+time ([Open Question 2](#2-how-is-chaining-and-order-dependence-bounded)), and how split avoids
+immediately being undone by merge re-absorbing its own output
+([Open Question 3](#3-how-is-mergesplit-oscillation-avoided)).
 
 ## Advantages
 
 - MemTree is optimized both for human and AI consumption. It is token efficient, and it is
   structured to facilitate semantic search and retrieval.
 - MemTree can be used as an always up-to-date knowledge wiki for humans and AI agents.
+- Redundancy consolidation is built into the same rule that handles ordinary adds — a document
+  whose content overlaps with several existing documents merges with all of them in one step,
+  rather than needing a separate mechanism to notice and fold overlapping content together after
+  the fact.
+- Deletion, once designed, is structurally simple: a document is a standalone unit with nothing
+  else in the pool referencing it, so removing one doesn't raise any of the reattachment or
+  special-casing questions a hierarchy would.
+- Fewer parameters and fewer rules than a hierarchical design: two parameters (`L`, `R`) and two
+  self-maintenance rules (merge on add, split on overflow), with no fan-out bound to maintain.
+
+The cost of this simplicity is that a flat pool has no structure to browse — every document stands
+alone, and the only way in is a query. See [Future Work](#future-work) for how links could recover
+that without reintroducing a rigid hierarchy.
 
 ## Open Questions
 
@@ -74,7 +91,7 @@ doing different jobs rather than one mechanism trying to do both:
   Explicit removal should stand alongside add as a first-class operation, available without
   restriction at the algorithm level — the algorithm itself has no concept of users or
   permissions, so deciding *who* is allowed to remove *what* is a concern for whatever layer
-  manages identity, not for the tree algorithm.
+  manages identity, not for the pool algorithm.
 
 - **Automatic removal** — driven by neglect rather than correctness, e.g. tracking how long it's
   been since a document was last read and treating documents that go unused long enough as
@@ -85,77 +102,68 @@ doing different jobs rather than one mechanism trying to do both:
   results while keeping it retrievable and reversible. Permanent removal stays an explicit,
   deliberate act.
 
-Removing a node also raises structural questions independent of *why* it's being removed:
-
-- **What happens to its children?** Cascading the removal — deleting the whole subtree — risks
-  throwing away still-valid content underneath a node that was itself invalid. The alternative —
-  reattaching the removed node's children to its own parent — keeps that content in the tree, one
-  level shallower, but isn't free: an internal node with several children usually represents a
-  category that groups them, and removing it while reattaching its children erases that grouping.
-  If many children are involved, this can simply relocate the original problem (too many
-  children crowded together) one level up instead of resolving it. Reattaching is a clean move
-  for a node with a single child, or when the node's own content was wrong but its role as a
-  grouping was still sound; it's a poor move when the node's whole cluster of children no longer
-  belongs together, in which case the children need to be individually reconsidered rather than
-  bulk-promoted.
-
-- **What happens to the root?** A root with no children can simply be removed — the tree becomes
-  empty, and the next document added becomes the new root. A root with children can't use the
-  same reattachment rule as everywhere else, because there's no grandparent to reattach to;
-  reattaching children with no parent produces a forest instead of a tree. Removing a root that
-  has children needs either a dedicated rule (e.g. promote one child to be the new root, reattach
-  the rest under it) or should simply be disallowed until the tree has been brought down to a
-  single child by other means.
+Unlike a tree, removing a document from a flat pool raises no structural questions of its own —
+there are no children to reattach and no root to special-case, since nothing in the pool holds a
+structural reference to anything else. (If [links](#future-work) are added later, removal will
+need to account for them — see that section.)
 
 Whatever the eventual design, two properties should hold regardless of mechanism:
 
 - Removal has to take effect immediately for search — a document search returns has to actually
   exist to be read, so removal can't be a lazy or eventual operation the way content edits (which
   just mark an embedding stale until it's recomputed) can be.
-- Removal has to be safe to run concurrently with the tree's other background maintenance
-  (splitting overflowing nodes, merging overflowing fan-out): a node queued for one of those
-  operations might be removed before that operation runs, and maintenance has to tolerate that
-  rather than assume every node it queued still exists by the time it acts.
+- Removal has to be safe to run concurrently with the pool's other background maintenance
+  (merging, splitting): a document queued for one of those operations might be removed before that
+  operation runs, and maintenance has to tolerate that rather than assume every document it queued
+  still exists by the time it acts.
 
-### 2. How does information go up the tree?
+### 2. How is chaining and order-dependence bounded?
 
-Search, read, and add, along with merge-on-add and split-on-overflow, only ever push content
-downward or sideways: split moves content from a node into new children beneath it; merge-on-add
-only ever affects the single node an addition lands on. Nothing currently takes content that has
-accumulated across several children and folds the shared part back into their parent — the
-inverse of what split does. Without that, the tree can only ever grow more specific over time,
-and as the underlying knowledge matures, similar content will simply keep piling up across
-siblings instead of consolidating.
+Merging "with every document in a given radius" as a single step is a form of single-linkage
+clustering, and single-linkage is known for chaining: if A merges with B, and later C arrives close
+enough to the merged A+B, C joins too — even if C was never within `R` of A itself. Over time, a
+cluster's effective radius can drift well past `R` from the perspective of its earliest members,
+purely as an artifact of the order documents happened to arrive in. Options worth exploring: cap
+how much a single merge step can pull in at once, re-validate radius against the *original*
+members rather than the running merged embedding, or split preemptively rather than waiting for
+`L` to be exceeded when a merge looks like it's chaining. None of these are decided yet.
 
-The general version of this is a content-extraction problem: given several children whose
-content partially overlaps, extract the common part into the parent (or into a newly created
-intermediate parent) and leave each child with just what's left over. Doing this precisely
-requires comparing children below the level of a whole document — at the level of individual
-passages or statements — which in turn requires a way to locate *where* two documents overlap,
-not just measure how similar they are as wholes.
+### 3. How is merge/split oscillation avoided?
 
-A coarser version only needs whole-document similarity: whenever a child's content, taken as a
-whole, is similar enough to its parent's, treat the child as no longer saying anything the parent
-doesn't already cover, and fold it entirely into the parent — merge its content into the
-parent's, move its own children up to attach directly to the parent, and remove it. This reuses
-the same similarity threshold and merge behavior that already governs merge-on-add, just
-evaluated across a parent-child pair instead of at write time, and it composes naturally with
-split: if enough absorbed content pushes the parent over the length limit, the existing split
-behavior re-differentiates it — so the tree can compress toward generality and expand toward
-specificity as the knowledge underneath it changes, rather than only ever growing in one
-direction.
+A document produced by splitting an overflowing merged document is, almost by construction, still
+highly similar to its siblings from the same split — they're fragments of what was, moments ago,
+one coherent document. If a later add (or a periodic resweep) re-evaluates those fragments against
+each other, they may re-cross radius `R`, merge right back together, overflow `L`, and split again.
+Avoiding this needs either split boundaries chosen deliberately so the outputs land below `R` from
+each other, or a cooldown that excludes freshly-split siblings from re-merging with one another for
+some period. Neither is defined yet.
 
-This coarser version also only ever removes a node by fully absorbing it, which is exactly the
-deletion problem from Open Question 1 — the two open questions aren't independent, and an answer
-to "how does a node get removed" is a prerequisite for "how does content rise." It's also why
-merge-on-fan-out can't be considered settled yet: reducing a node's number of children means
-removing or restructuring some of them, and moving information *up* (rather than merely combining
-siblings into each other) means the tree needs a way to create new intermediate nodes to hold
-whatever gets extracted — neither of which has a defined mechanism yet.
+## Future Work
 
-Left open even within the coarser approach: whether this check should run continuously
-(evaluated whenever a child changes, the way merge-on-add is) or as a periodic background sweep
-(the way split's maintenance pass is); and whether whole-document similarity is too coarse in
-practice — a child that's mostly novel but partly redundant with its parent won't cross the
-threshold and won't get any relief, which is exactly the case finer-grained extraction would
-solve, but is worth deferring until it's shown to be a real problem.
+### Making the pool browsable: links between documents
+
+A flat pool's biggest weakness against a hierarchical design is navigability: there's no path to
+walk, no way to orient without already knowing what to search for — a real gap for something
+framed as a *wiki* rather than pure retrieval backend. The intent is to close that gap not by
+reintroducing a rigid tree, but by letting documents **link** to each other, the way wiki articles
+do.
+
+Roughly:
+
+- When a document is added or merged, in addition to the merge-radius check against `R`, compare
+  it against other documents at a second, lower similarity band — related enough to be relevant,
+  not similar enough to merge — and record a link between them.
+- Links let search results surface "see also" documents beyond the top-matching set, and let
+  reading one document surface what points to and from it (backlinks), giving the browsing
+  experience a hierarchy-like path without committing every document to exactly one place in a
+  hierarchy — a document can link to several others across what would have been unrelated branches
+  of a tree.
+- Links could also be authored explicitly — by a human, or by an agent that has just read two
+  documents and recognizes a connection a similarity score alone wouldn't surface (e.g. a causal or
+  chronological relationship rather than a topical one).
+
+Open sub-questions this needs to work through before it's a real design: whether links are directed
+or undirected; whether they carry a type (e.g. "related", "see also", "supersedes") or are
+uniform; how many links a document should accumulate before they stop being useful signal; how
+links get invalidated or re-evaluated as the documents on either end keep changing under merge and
+split; and what removal means once a deleted document has other documents linking to it.

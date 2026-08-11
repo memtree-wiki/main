@@ -4,19 +4,15 @@ import PQueue from "p-queue"
 type Vector = readonly number[]
 
 type Embed = (text: string, asQuery: boolean) => Promise<Vector>
-type Merge = (docs: [Document, Document]) => Document
-type Split = (doc: Document) => {
-  parent: Document
-  children: Document[]
-}
+// Docs are ordered by creation time, newer docs are last in the array.
+type Merge = (docs: Document[]) => Promise<Document>
+type Split = (doc: Document) => Promise<Document[]>
 
 type nodeId = number
 
 interface Node {
   nodeId: nodeId
   created: Date
-  parent: nodeId | null
-  children: nodeId[]
   doc: Document
 }
 
@@ -26,20 +22,19 @@ interface SearchResult {
 }
 
 interface Store {
-  search: (vector: Vector, topK?: number) => Promise<SearchResult[]>
-  add: (doc: Document, parent: nodeId | null) => Promise<nodeId>
-  update: (nodeId: nodeId, doc: Document) => Promise<void>
-  del: (nodeId: nodeId) => Promise<void>
-  get: (nodeId: nodeId) => Promise<Node>
-  setParent: (child: nodeId, parent: nodeId | null) => Promise<void>
-  // 
-  getSpillableNodes: (L: number) => Promise<Node[]>
+  search(vector: Vector, topK?: number): Promise<SearchResult[]>
+
+  add(doc: Document): Promise<nodeId>
+  del(nodeId: nodeId): Promise<void>
+  get(nodeId: nodeId): Promise<Node>
+
+  getNeighbors(vector: Vector, radius: number): Promise<Node[]>
+  getSplittable(L: number): Promise<Node[]>
 }
 
 interface Params {
-  L: number
-  D: number
-  T: number
+  mergeRadius: number
+  maxDocLength: number
 
   embed: Embed
   merge: Merge
@@ -52,7 +47,7 @@ interface Params {
 
 export type API = ReturnType<typeof memTree>
 
-export function memTree({ L, D, T, embed, merge, split, store, splitConcurrency }: Params) {
+export function memTree({ mergeRadius, maxDocLength, embed, merge, split, store, splitConcurrency }: Params) {
   // SEARCH
   interface SearchParams {
     query: string
@@ -79,17 +74,7 @@ export function memTree({ L, D, T, embed, merge, split, store, splitConcurrency 
   }
 
   async function add({ doc }: AddParams) {
-    const vector = await embed(doc.about, false)
-    const results = await store.search(vector, 1)
-    const best = results[0]
-
-    if (best && best.score >= T) {
-      const merged = merge([best.node.doc, doc])
-      await store.update(best.node.nodeId, merged)
-      return best.node.nodeId
-    }
-
-    return store.add(doc, null)
+    // TODO: implement
   }
 
   // MAINTENANCE
@@ -101,16 +86,15 @@ export function memTree({ L, D, T, embed, merge, split, store, splitConcurrency 
     add,
     // 
     split: async () => {
-      const ns = await store.getSpillableNodes(L)
-      qSplit.addAll(ns.map(n => async () => {
-        const { parent, children } = split(n.doc)
-        await store.update(n.nodeId, parent)
-        for (const child of children) {
-          await store.add(child, n.nodeId)
+      const ns = await store.getSplittable(maxDocLength)
+      qSplit.addAll(ns.map(({ doc, nodeId }) => async () => {
+        for (const child of await split(doc)) {
+          await store.add(child)
         }
+        await store.del(nodeId)
       }))
+
       await qSplit.onIdle()
     }
-    // TODO: implement merge but we need to define it first.
   }
 }
