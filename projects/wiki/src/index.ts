@@ -19,8 +19,13 @@ interface Node {
   doc: Document
 }
 
+interface SearchResult {
+  node: Node
+  score: number
+}
+
 interface Store {
-  search: (query: string) => Promise<Node[]>
+  search: (vector: Vector) => Promise<SearchResult[]>
   add: (doc: Document) => Promise<nodeId>
   del: (subtree: nodeId) => Promise<void>
   get: (nodeId: nodeId) => Promise<Node>
@@ -31,6 +36,8 @@ interface Params {
   merge: Merge
   split: Split
   store: Store
+  L: number
+  D: number
 }
 
 type API = ReturnType<typeof memTree>
