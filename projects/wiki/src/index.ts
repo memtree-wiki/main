@@ -1,4 +1,5 @@
-import { md, type Document } from "@memtree.wiki/docs"
+import { type Document } from "@memtree.wiki/docs"
+import PQueue from "p-queue"
 
 type Vector = readonly number[]
 
@@ -40,9 +41,11 @@ interface Store {
   search: (vector: Vector, topK?: number) => Promise<SearchResult[]>
   add: (doc: Document, parent: nodeId | null) => Promise<nodeId>
   update: (nodeId: nodeId, doc: Document) => Promise<void>
-  reparent: (nodeId: nodeId, parent: nodeId | null) => Promise<void>
-  del: (subtree: nodeId) => Promise<void>
+  del: (nodeId: nodeId) => Promise<void>
   get: (nodeId: nodeId) => Promise<Node>
+  setParent: (child: nodeId, parent: nodeId | null) => Promise<void>
+  // 
+  getSpillableNodes: (L: number) => Promise<Node[]>
 }
 
 interface Params {
@@ -55,21 +58,13 @@ interface Params {
   split: Split
 
   store: Store
+
+  splitConcurrency?: number
 }
 
 export type API = ReturnType<typeof memTree>
 
-/*
-TODO:
-- Implementation should be simple:
-  - Add: search for most similar node and merge if score > T, otherwise add as an orphan node.
-    Do not check if the merged node exceeds L.
-  - Maintain:
-    1. Split large nodes (adjust store API if needed)
-    2. Cluster children with too many siblings (adjust store API if needed)
-    This is the user responsibility to call maintain() whenever they want to to keep the structure of the tree balanced.
-*/
-export function memTree({ L, D, T, embed, merge, split, store }: Params) {
+export function memTree({ L, D, T, embed, merge, split, store, splitConcurrency }: Params) {
   // SEARCH
   interface SearchParams {
     query: string
@@ -103,97 +98,30 @@ export function memTree({ L, D, T, embed, merge, split, store }: Params) {
     if (best && best.score >= T) {
       const merged = merge([best.node.doc, doc])
       await store.update(best.node.nodeId, merged)
-      await maintainSize(best.node.nodeId)
       return best.node.nodeId
     }
 
-    const parent = best?.node.nodeId ?? null
-    const id = await store.add(doc, parent)
-    await maintainSize(id)
-    if (parent !== null) await maintainFanOut(parent)
-    return id
+    return store.add(doc, null)
   }
 
-  async function maintainSize(id: nodeId): Promise<void> {
-    const node = await store.get(id)
-    if (md(node.doc).length <= L) return
+  // MAINTENANCE
+  const qSplit = new PQueue({ concurrency: splitConcurrency ?? 1 })
 
-    const { parent, children } = split(node.doc)
-    await store.update(id, parent)
-    for (const child of children) {
-      await store.add(child, id)
-    }
-    await maintainFanOut(id)
-  }
-
-  async function cluster(docs: Document[]): Promise<Document[][]> {
-    const vectors = await Promise.all(docs.map((doc) => embed(doc)))
-    let groups = docs.map((doc, i) => ({ docs: [doc], vector: vectors[i]! }))
-
-    const target = Math.floor(D / 2)
-    while (groups.length > target) {
-      let bestI = 0
-      let bestJ = 1
-      let bestScore = -Infinity
-      for (let i = 0; i < groups.length; i++) {
-        for (let j = i + 1; j < groups.length; j++) {
-          const score = cosineSimilarity(groups[i]!.vector, groups[j]!.vector)
-          if (score > bestScore) {
-            bestScore = score
-            bestI = i
-            bestJ = j
-          }
+  return {
+    search,
+    read,
+    add,
+    // 
+    split: async () => {
+      const ns = await store.getSpillableNodes(L)
+      qSplit.addAll(ns.map(n => async () => {
+        const { parent, children } = split(n.doc)
+        await store.update(n.nodeId, parent)
+        for (const child of children) {
+          await store.add(child, n.nodeId)
         }
-      }
-
-      const a = groups[bestI]!
-      const b = groups[bestJ]!
-      const mergedDocs = [...a.docs, ...b.docs]
-      const mergedVector = a.vector.map((v, i) => (v + b.vector[i]!) / 2)
-      groups = groups.filter((_, idx) => idx !== bestI && idx !== bestJ)
-      groups.push({ docs: mergedDocs, vector: mergedVector })
-    }
-
-    return groups.map((g) => g.docs)
-  }
-
-  async function maintainFanOut(id: nodeId): Promise<void> {
-    const node = await store.get(id)
-    if (node.children.length <= D) return
-
-    const children = await Promise.all(node.children.map((childId) => store.get(childId)))
-    const groups = await cluster(children.map((child) => child.doc))
-
-    for (const group of groups) {
-      const members = children.filter((child) => group.includes(child.doc))
-      const [keep, ...rest] = members
-      if (!keep || rest.length === 0) continue
-
-      let mergedDoc = keep.doc
-      for (const member of rest) {
-        mergedDoc = merge([mergedDoc, member.doc])
-        for (const grandchildId of member.children) {
-          await store.reparent(grandchildId, keep.nodeId)
-        }
-        await store.del(member.nodeId)
-      }
-      await store.update(keep.nodeId, mergedDoc)
-      await maintainSize(keep.nodeId)
-      await maintainFanOut(keep.nodeId)
+      }))
+      await qSplit.onIdle()
     }
   }
-
-  // DELETE
-  interface DelParams {
-    subtreeId: nodeId
-  }
-
-  function del({ subtreeId }: DelParams) {
-    return store.del(subtreeId)
-  }
-
-  // MAINTAIN
-  function maintain() { }
-
-  return { search, read, add, del, maintain }
 }

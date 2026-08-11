@@ -18,6 +18,7 @@
   "dependencies": {
     "@ai-sdk/openai": "^4.0.36",
     "@memtree.wiki/docs": "workspace:*",
-    "ai": "^7.0.58"
+    "ai": "^7.0.58",
+    "p-queue": "^9.3.3"
   }
 }
