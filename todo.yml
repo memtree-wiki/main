@@ -1,26 +1,7 @@
 LINKS:
   - https://cloud.google.com/blog/products/data-analytics/how-the-open-knowledge-format-can-improve-data-sharing/
   - https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f
+
 TODO:
 
 DONE:
-  - create a post-merge git hook that runs whenever I merge dev into main and:
-      - patch the version of projects/docs
-  - implement the code element in the docs renderer, use the most efficient lightweight code highlighting library for the rendering.
-  - memtree algorithm:
-      - Describe the memtree algorithm in doc/algorithm.md:
-          - MemTree is a knowledge base for humans and AI agents structured as a tree of documents (see Document).
-          - Every node in the tree has a semantic embedding.
-          - An AI agent can:
-              - search the tree
-              - read a specific document
-              - add a new document to the tree
-              - replace an existing document in the tree
-              - delete a subtree from the tree
-          - The MemTree algorithm has 2 params:
-              - Max document length (text length) - L
-              - Max out degree (number of children per node) - D
-          - The tree is self maintained in the background:
-              - When adding a new document it is merged into an existing document if it is semantically similar enough.
-              - When a document reaches exceed the limit of L it is split into a parent and children documents and its existing children are reattached to the new parent document.
-              - When a document has more than D children, the children are clustered and merged into D / 2 documents.
