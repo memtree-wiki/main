@@ -29,6 +29,6 @@ document exceeds `L` and no node exceeds `D` children:
   existing document, it is merged into that document instead of being inserted as a new node.
 - **Split on overflow.** When a document's length exceeds `L`, it is split into a parent document
   and child documents. The original document's existing children are reattached under the new
-  parent.
+  parent. Ideally the split yields documents with length below `L / 2`.
 - **Cluster on fan-out.** When a document has more than `D` children, its children are clustered
-  and merged down into `D / 2` documents.
+  and merged down into at most `D / 2` documents.
