@@ -35,15 +35,18 @@ interface Params {
   L: number
   D: number
   T: number
+
   embed: Embed
   merge: Merge
   split: Split
+  clust: (docs: Document[]) => Promise<Document[]>
+
   store: Store
 }
 
-type API = ReturnType<typeof memTree>
+export type API = ReturnType<typeof memTree>
 
-export function memTree({ L, D, T, embed, merge, split, store }: Params) {
+export function memTree({ L, D, T, embed, merge, split, clust, store }: Params) {
   // SEARCH
   interface SearchParams {
     query: string
