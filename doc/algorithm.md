@@ -11,6 +11,7 @@ An AI agent interacting with the tree can:
 - **search** the tree — find documents relevant to a query via semantic similarity.
 - **read** a specific document.
 - **add** a new document to the tree.
+- **edit** an existing document's content.
 - **delete** a subtree from the tree.
 
 ## Parameters
@@ -32,3 +33,12 @@ document exceeds `L` and no node exceeds `D` children:
   parent. Ideally the split yields documents with length below `L / 2`.
 - **Cluster on fan-out.** When a document has more than `D` children, its children are clustered
   and merged down into at most `D / 2` documents.
+
+Any operation that changes a document's content (add, edit, merge, or split) invalidates its
+embedding, which must be recomputed before the document is searchable again — a memory layer
+whose retrieval relies on stale embeddings fails silently rather than loudly.
+
+
+## Advantages
+- MemTree is optimized both for human and AI consumption. It is token efficient, and it is structured to facilitate semantic search and retrieval.
+- MemTree can be used as an always up-to-date knowledge wiki for humans and AI agents.
