@@ -10,6 +10,7 @@ import "prismjs/components/prism-ruby"
 import "prismjs/components/prism-rust"
 import "prismjs/components/prism-typescript"
 import h from "vhtml"
+import { stringify } from 'yaml'
 import z from "zod"
 
 // INLINE
@@ -98,7 +99,7 @@ export const Element = z.discriminatedUnion("type", [h2, h3, ol, ul, p, table, c
 export type Document = z.infer<typeof Document>
 export const Document = z.object({
   title: z.string(),
-  description: z.string(),
+  about: z.string(),
   content: z.array(Element),
 })
 
@@ -148,11 +149,11 @@ function renderElementHtml<T extends ElementType>(element: Extract<Element, { ty
   return elementHtml[element.type](element)
 }
 
-export function html({ title, description, content }: Document) {
+export function html({ title, about, content }: Document) {
   return (
     <article>
       <h1>{title}</h1>
-      <p>{description}</p>
+      <p>{about}</p>
       {content.map(renderElementHtml)}
     </article>
   )
@@ -189,57 +190,17 @@ function renderElementMd<T extends ElementType>(element: Extract<Element, { type
   return elementMd[element.type](element)
 }
 
-export function md({ title, description, content }: Document) {
+export function md({ title, about, content }: Document) {
   const frontmatter = [
     "---",
-    `title: ${JSON.stringify(title)}`,
-    `description: ${JSON.stringify(description)}`,
+    stringify({ title, about }).trim(),
     "---\n",
   ].join("\n")
   return [
     frontmatter,
     `# ${title}\n`,
-    `${description}\n`,
+    `${about}\n`,
     ...content.map(renderElementMd)
   ].join("\n")
 }
 
-// TXT
-const inlineTxt: { [k in InlineType]: (format: Extract<Inline, { type: k }>) => string } = {
-  strong: ({ text }) => text,
-  em: ({ text }) => text,
-  span: ({ text }) => text,
-  a: ({ href, text }) => text,
-}
-
-function renderInlineTxt<T extends InlineType>(format: Extract<Inline, { type: T }>) {
-  return inlineTxt[format.type](format)
-}
-
-const elementTxt: { [k in ElementType]: (element: Extract<Element, { type: k }>) => string } = {
-  h2: ({ text }) => `${text}\n`,
-  h3: ({ text }) => `${text}\n`,
-  p: ({ content }) => content.map(renderInlineTxt).join(" "),
-  ol: elementMd.ol,
-  ul: elementMd.ul,
-  table: ({ headers, data }) => {
-    const rows = [headers, ...data.map(row => row.map(cell => renderElementTxt(cell)))]
-    const widths = headers.map((_, col) => Math.max(...rows.map(row => row[col]!.length)))
-    return rows
-      .map(row => row.map((cell, col) => cell.padEnd(widths[col]!)).join("  ").trimEnd())
-      .join("\n")
-  },
-  code: ({ content }) => content,
-}
-
-function renderElementTxt<T extends ElementType>(element: Extract<Element, { type: T }>) {
-  return elementTxt[element.type](element)
-}
-
-export function txt({ title, description, content }: Document) {
-  return [
-    title,
-    description,
-    ...content.map(renderElementTxt)
-  ].join("\n")
-}

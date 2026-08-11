@@ -2,22 +2,40 @@ import type { Document } from "@memtree.wiki/docs"
 
 type Vector = readonly number[]
 
-type Embedder = (doc: Document) => Promise<Vector>
-type Merger = (docs: [Document, Document]) => Document
-type Splitter = (doc: Document) => {
+type Embed = (doc: Document) => Promise<Vector>
+type Merge = (docs: [Document, Document]) => Document
+type Split = (doc: Document) => {
   parent: Document
   children: Document[]
 }
 
+type nodeId = number
+
+interface Node {
+  nodeId: nodeId
+  created: Date
+  parent: nodeId | null
+  children: nodeId[]
+  doc: Document
+}
+
+interface Store {
+  search: (query: string) => Promise<Node[]>
+  add: (doc: Document) => Promise<nodeId>
+  del: (subtree: nodeId) => Promise<void>
+  get: (nodeId: nodeId) => Promise<Node>
+}
+
 interface Params {
-  embedder: Embedder
-  merger: Merger
-  splitter: Splitter
+  embed: Embed
+  merge: Merge
+  split: Split
+  store: Store
 }
 
 type API = ReturnType<typeof memTree>
 
-export function memTree({ embedder, merger, splitter }: Params) {
+export function memTree({ embed, merge, split }: Params) {
   // SEARCH
   interface SearchParams {
     query: string
@@ -27,10 +45,10 @@ export function memTree({ embedder, merger, splitter }: Params) {
 
   // READ
   interface ReadParams {
-    nodeId: number
+    docId: nodeId
   }
 
-  function read({ nodeId }: ReadParams) { }
+  function read({ docId }: ReadParams) { }
 
   // ADD
   interface AddParams {
@@ -41,7 +59,7 @@ export function memTree({ embedder, merger, splitter }: Params) {
 
   // DELETE
   interface DelParams {
-    subtreeId: number
+    subtreeId: nodeId
   }
 
   function del({ subtreeId }: DelParams) { }

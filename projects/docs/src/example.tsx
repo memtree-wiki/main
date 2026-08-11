@@ -5,7 +5,7 @@ import { html } from "."
 
 const doc: Document = {
   title: "The Document Schema",
-  description: "A short tour of every element and inline format the schema currently supports.",
+  about: "A short tour of every element and inline format the schema currently supports.",
   content: [
     {
       type: "h2",
