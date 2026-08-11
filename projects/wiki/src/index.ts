@@ -28,6 +28,7 @@ interface Store {
   search: (vector: Vector, topK?: number) => Promise<SearchResult[]>
   add: (doc: Document, parent: nodeId | null) => Promise<nodeId>
   update: (nodeId: nodeId, doc: Document) => Promise<void>
+  reparent: (nodeId: nodeId, parent: nodeId | null) => Promise<void>
   del: (subtree: nodeId) => Promise<void>
   get: (nodeId: nodeId) => Promise<Node>
 }
@@ -109,17 +110,24 @@ export function memTree({ L, D, T, embed, merge, split, clust, store }: Params) 
     if (node.children.length <= D) return
 
     const children = await Promise.all(node.children.map((childId) => store.get(childId)))
-    const clustered = await clust(children.map((child) => child.doc))
+    const groups = await clust(children.map((child) => child.doc))
 
-    // clust folds children's content into fewer documents without saying which
-    // originals contributed to which result, so the old children's subtrees can't
-    // be selectively preserved — they're discarded wholesale in favor of the merged set.
-    for (const child of children) {
-      await store.del(child.nodeId)
-    }
-    for (const doc of clustered) {
-      const childId = await store.add(doc, id)
-      await maintainSize(childId)
+    for (const group of groups) {
+      const members = children.filter((child) => group.includes(child.doc))
+      const [keep, ...rest] = members
+      if (!keep || rest.length === 0) continue
+
+      let mergedDoc = keep.doc
+      for (const member of rest) {
+        mergedDoc = merge([mergedDoc, member.doc])
+        for (const grandchildId of member.children) {
+          await store.reparent(grandchildId, keep.nodeId)
+        }
+        await store.del(member.nodeId)
+      }
+      await store.update(keep.nodeId, mergedDoc)
+      await maintainSize(keep.nodeId)
+      await maintainFanOut(keep.nodeId)
     }
   }
 
