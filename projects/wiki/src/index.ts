@@ -3,10 +3,10 @@ import PQueue from "p-queue"
 
 type Vector = readonly number[]
 
-type Embed = (text: string, asQuery: boolean) => Promise<Vector>
+export type Embed = (text: string) => Promise<Vector>
 // Docs are ordered by creation time, newer docs are last in the array.
-type Merge = (docs: Document[]) => Promise<Document>
-type Split = (doc: Document) => Promise<Document[]>
+export type Merge = (docs: Document[]) => Promise<Document>
+export type Split = (doc: Document) => Promise<Document[]>
 
 type nodeId = number
 
@@ -36,7 +36,8 @@ interface Params {
   mergeRadius: number
   maxDocLength: number
 
-  embed: Embed
+  embedDoc: Embed
+  embedQuery: Embed
   merge: Merge
   split: Split
 
@@ -47,7 +48,7 @@ interface Params {
 
 export type API = ReturnType<typeof memTree>
 
-export function memTree({ mergeRadius, maxDocLength, embed, merge, split, store, splitConcurrency }: Params) {
+export function memTree({ mergeRadius, maxDocLength, embedDoc, embedQuery, merge, split, store, splitConcurrency }: Params) {
   // SEARCH
   interface SearchParams {
     query: string
@@ -55,7 +56,7 @@ export function memTree({ mergeRadius, maxDocLength, embed, merge, split, store,
   }
 
   async function search({ query, topK }: SearchParams) {
-    const vector = await embed(query, true)
+    const vector = await embedQuery(query)
     return store.search(vector, topK)
   }
 
@@ -74,7 +75,7 @@ export function memTree({ mergeRadius, maxDocLength, embed, merge, split, store,
   }
 
   async function add({ doc }: AddParams) {
-    const vector = await embed(doc.about, false)
+    const vector = await embedDoc(doc.about)
     const neighbors = await store.getNeighbors(vector, mergeRadius)
 
     if (neighbors.length === 0) {

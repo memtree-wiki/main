@@ -96,10 +96,17 @@ export const Element = z.discriminatedUnion("type", [h2, h3, ol, ul, p, table, c
 
 
 // DOCUMENT
+// `about` is the most important field: it's the text that gets embedded for
+// search/merge-neighbor lookup (see wiki's embedDoc/embedQuery), not just a
+// display blurb, so it should densely summarize what's in `content`.
 export type Document = z.infer<typeof Document>
 export const Document = z.object({
-  title: z.string(),
-  about: z.string(),
+  title: z.string().describe("The title of the document"),
+  about: z.string().describe(
+    "A dense summary of what this document is about. This is embedded for semantic " +
+    "search and neighbor lookup, so include the key terms, entities, and topics a " +
+    "reader would search for — not just a display blurb."
+  ),
   content: z.array(Element),
 })
 
