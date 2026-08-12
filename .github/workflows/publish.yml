@@ -28,23 +28,23 @@ jobs:
         working-directory: projects/docs
         run: bunx npm@latest publish --access public --provenance
 
-  # publish-wiki:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Checkout repository
-  #       uses: actions/checkout@v4
+  publish-wiki:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-  #     - name: Setup Bun
-  #       uses: oven-sh/setup-bun@v2
-  #       with:
-  #         bun-version: latest
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
 
-  #     - name: Install dependencies
-  #       run: bun install --frozen-lockfile
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
 
-  #     - name: Publish with Provenance
-  #       working-directory: projects/wiki
-  #       run: bunx npm publish --access public --provenance
+      - name: Publish with Provenance
+        working-directory: projects/wiki
+        run: bunx npm publish --access public --provenance
 
   # publish-api-common:
   #   runs-on: ubuntu-latest
