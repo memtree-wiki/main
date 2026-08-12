@@ -44,7 +44,7 @@ jobs:
 
       - name: Publish with Provenance
         working-directory: projects/wiki
-        run: bunx npm publish --access public --provenance
+        run: bunx npm@latest publish --access public --provenance
 
   # publish-api-common:
   #   runs-on: ubuntu-latest
