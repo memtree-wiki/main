@@ -1,0 +1,25 @@
+{
+  "name": "@memtree.wiki/store",
+  "private": false,
+  "version": "0.0.1",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/memtree-wiki/main.git",
+    "directory": "projects/store"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "types": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@memtree.wiki/mem": "workspace:*",
+    "kysely": "^0.29.5",
+    "kysely-bun-sqlite": "^0.4.0",
+    "pino": "^9.6.0",
+    "sqlite-vec": "^0.1.9"
+  }
+}

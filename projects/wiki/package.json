@@ -1,0 +1,27 @@
+{
+  "name": "@memtree.wiki/wiki",
+  "private": false,
+  "version": "0.0.8",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/memtree-wiki/main.git",
+    "directory": "projects/wiki"
+  },
+  "exports": {
+    ".": "./src/index.tsx"
+  },
+  "types": "./src/index.tsx",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "manual": "bun run tst/wiki-manual.ts"
+  },
+  "dependencies": {
+    "@memtree.wiki/mem": "workspace:*",
+    "@memtree.wiki/store": "workspace:*",
+    "vhtml": "^2.2.0"
+  },
+  "devDependencies": {
+    "@types/vhtml": "^2.2.9"
+  }
+}

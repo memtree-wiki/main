@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# Bumps every workspace package's patch version (kept in lockstep) whenever `dev` is merged into `main`.
+set -euo pipefail
+
+branch="$(git rev-parse --abbrev-ref HEAD)"
+[ "$branch" = "main" ] || exit 0
+
+last_merge="$(git reflog -1 --format=%gs)"
+[[ "$last_merge" == "merge dev:"* ]] || exit 0
+
+repo_root="$(git rev-parse --show-toplevel)"
+
+new_version="$(cd "$repo_root" && bun pm version patch --no-git-tag-version)"
+new_version="${new_version#v}"
+
+while IFS= read -r -d '' pkg; do
+  dir="$(dirname "$pkg")"
+  (cd "$dir" && bun pm version "$new_version" --no-git-tag-version) > /dev/null
+done < <(find "$repo_root/projects" -maxdepth 3 -name package.json -not -path '*/node_modules/*' -print0)

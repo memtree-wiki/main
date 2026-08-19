@@ -1,0 +1,121 @@
+name: Publish Packages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write # Required for OIDC trusted publishing & provenance
+
+jobs:
+  publish-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Publish with Provenance
+        working-directory: projects/docs
+        run: bunx npm@latest publish --access public --provenance
+
+  publish-mem:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Publish with Provenance
+        working-directory: projects/mem
+        run: bunx npm@latest publish --access public --provenance
+
+  publish-wiki:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Publish with Provenance
+        working-directory: projects/wiki
+        run: bunx npm@latest publish --access public --provenance
+
+  # publish-api-common:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout repository
+  #       uses: actions/checkout@v4
+
+  #     - name: Setup Bun
+  #       uses: oven-sh/setup-bun@v2
+  #       with:
+  #         bun-version: latest
+
+  #     - name: Install dependencies
+  #       run: bun install --frozen-lockfile
+
+  #     - name: Publish with Provenance
+  #       working-directory: projects/api/common
+  #       run: bunx npm publish --access public --provenance
+
+  # publish-api-web:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout repository
+  #       uses: actions/checkout@v4
+
+  #     - name: Setup Bun
+  #       uses: oven-sh/setup-bun@v2
+  #       with:
+  #         bun-version: latest
+
+  #     - name: Install dependencies
+  #       run: bun install --frozen-lockfile
+
+  #     - name: Publish with Provenance
+  #       working-directory: projects/api/web
+  #       run: |
+  #         bun pm pack --destination "$RUNNER_TEMP"
+  #         bunx npm publish --access public --provenance "$RUNNER_TEMP"/*.tgz
+
+  # publish-api-client:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout repository
+  #       uses: actions/checkout@v4
+
+  #     - name: Setup Bun
+  #       uses: oven-sh/setup-bun@v2
+  #       with:
+  #         bun-version: latest
+
+  #     - name: Install dependencies
+  #       run: bun install --frozen-lockfile
+
+  #     - name: Publish with Provenance
+  #       working-directory: projects/api/client
+  #       run: bunx npm publish --access public --provenance
