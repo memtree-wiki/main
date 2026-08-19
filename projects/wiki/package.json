@@ -14,10 +14,9 @@
   "types": "./src/index.tsx",
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "manual": "bun run tst/wiki-manual.ts"
+    "start": "bun run src/index.tsx"
   },
   "dependencies": {
-    "@memtree.wiki/mem": "workspace:*",
     "@memtree.wiki/store": "workspace:*",
     "vhtml": "^2.2.0"
   },

@@ -11,17 +11,12 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "ingest": "bun run src/ingest.ts",
-    "analyze": "bun run src/analyze.ts",
-    "qa": "bun run src/qa.ts",
     "baseline": "bun run src/baseline.ts"
   },
   "dependencies": {
     "@memtree.wiki/mem": "workspace:*",
     "@memtree.wiki/store": "workspace:*",
     "ai": "^7.0.58",
-    "kysely": "^0.29.5",
-    "kysely-bun-sqlite": "^0.4.0",
-    "sqlite-vec": "^0.1.9",
     "zod": "^4.4.3"
   }
 }

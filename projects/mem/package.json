@@ -16,10 +16,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@ai-sdk/openai": "^4.0.36",
     "@memtree.wiki/store": "workspace:*",
     "ai": "^7.0.58",
-    "pino": "^9.6.0",
     "zod": "^4.4.3"
   }
 }

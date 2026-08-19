@@ -53,12 +53,13 @@ export namespace store {
       .addColumn("tag_id", "integer", (col) => col.notNull().references("tag.tag_id"))
       .addPrimaryKeyConstraint("tags_pk", ["msg_id", "tag_id"])
       .execute()
+
+    return db
   }
 
   export async function sqlite(path = ":memory:") {
     const db = new Kysely<Store>({ dialect: new BunSqliteDialect({ database: new Database(path) }) })
-    await init(db)
-    return db
+    return await init(db)
   }
 }
 
